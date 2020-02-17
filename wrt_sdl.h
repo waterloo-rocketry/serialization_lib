@@ -1,6 +1,10 @@
 #ifndef WRT_SDL_H_
 #define WRT_SDL_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include <stddef.h>
 
@@ -46,5 +50,9 @@ size_t wsdl_serialize(const uint8_t *data,
                       size_t data_len,
                       char *encoded,
                       size_t max_encoded_len);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif
