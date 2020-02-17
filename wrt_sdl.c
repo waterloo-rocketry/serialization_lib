@@ -46,12 +46,11 @@ int wsdl_begin_deserialization(wsdl_ctx_t *ctx, uint8_t *data_out, size_t data_l
     if (ctx == NULL || data_out == NULL)
         return -1;
 
-    ctx->chars_decoded = 0;
-    ctx->chars_to_decode = chars_in_bytes(data_len);
+    ctx->bytes_decoded = 0;
+    ctx->bytes_to_decode = data_len;
     ctx->data = data_out;
-    ctx->chars_decoded = 0;
-    ctx->finished = 0;
     ctx->offset = 8;
+    ctx->finished = 0;
 
     return 0;
 }
@@ -70,37 +69,40 @@ int wsdl_deserialize_byte(wsdl_ctx_t *ctx, char encoded)
         case 8:
             // decode char into data[7:2]
             *(ctx->data) = decode(encoded) << 2;
-            ctx->chars_decoded++;
             ctx->offset = 2;
             break;
         case 6:
             // decode char into data[5:0]
             *(ctx->data) |= decode(encoded);
-            (ctx->data)++;
-            ctx->chars_decoded++;
+            ctx->data++;
+            ctx->bytes_decoded++;
             ctx->offset = 8;
             break;
         case 4:
             // decode *iter into data[3:0] and (data+1)[7:6]
             *(ctx->data) |= decode(encoded) >> 2;
-            (ctx->data)++;
-            *(ctx->data) = (decode(encoded) & 0x3) << 6;
-            ctx->chars_decoded++;
-            ctx->offset = 6;
+            ctx->data++;
+            ctx->bytes_decoded++;
+            if (ctx->bytes_decoded < ctx->bytes_to_decode) {
+                *(ctx->data) = (decode(encoded) & 0x3) << 6;
+                ctx->offset = 6;
+            }
             break;
         case 2:
             // decode *iter into data[1:0] and (data+1)[7:4]
             *(ctx->data) |= decode(encoded) >> 4;
-            (ctx->data)++;
-            *(ctx->data) = (decode(encoded) & 0xf) << 4;
-            ctx->chars_decoded++;
-            ctx->offset = 4;
+            ctx->data++;
+            ctx->bytes_decoded++;
+            if (ctx->bytes_decoded < ctx->bytes_to_decode) {
+                *(ctx->data) = (decode(encoded) & 0xf) << 4;
+                ctx->offset = 4;
+            }
             break;
         default:
             return -1;
     }
 
-    if (ctx->chars_decoded == ctx->chars_to_decode) {
+    if (ctx->bytes_decoded == ctx->bytes_to_decode) {
         ctx->finished = 1;
         return 0;
     } else {
@@ -112,7 +114,7 @@ size_t wsdl_deserialize(uint8_t *data, size_t data_len, const char *ser, size_t 
 {
     wsdl_ctx_t ctx;
     wsdl_begin_deserialization(&ctx, data, data_len);
-    if (ser_len < ctx.chars_to_decode) {
+    if (ser_len < chars_in_bytes(data_len)) {
         return 0;
     } else {
         size_t counter = 1;

@@ -10,8 +10,8 @@ extern "C" {
 
 // Waterloo rocketry Serialization/Deserialization Library Context type
 typedef struct {
-    size_t chars_decoded;
-    size_t chars_to_decode;
+    size_t bytes_decoded;
+    size_t bytes_to_decode;
     uint8_t *data;
     uint8_t offset;
     uint8_t finished;
