@@ -1,9 +1,11 @@
 #include "wrt_sdl.h"
 
-#include<stdbool.h>
-#include<stdio.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
+#include <cmocka.h>
 
-bool test_single_deserialize()
+static void test_single_deserialize()
 {
     struct {
         int a;
@@ -19,14 +21,13 @@ bool test_single_deserialize()
 
     size_t len_out = wsdl_deserialize((uint8_t*) &y, sizeof(y), buffer, len);
 
-    if (y.a != x.a || y.b != x.b || y.c != x.c) {
-        return false;
-    } else {
-        return true;
-    }
+    assert_int_equal(x.a, y.a);
+    assert_int_equal(x.b, y.b);
+    assert_int_equal(x.c, y.c);
+    assert_int_equal(len, len_out);
 }
 
-bool test_single_deserialize_byte_by_byte()
+static void test_single_deserialize_byte_by_byte()
 {
     struct {
         int a;
@@ -45,14 +46,12 @@ bool test_single_deserialize_byte_by_byte()
     wsdl_begin_deserialization(&ctx, (uint8_t*) &y, sizeof(y));
     while(wsdl_deserialize_byte(&ctx, *(b++))) ;
 
-    if (y.a != x.a || y.b != x.b || y.c != x.c) {
-        return false;
-    } else {
-        return true;
-    }
+    assert_int_equal(x.a, y.a);
+    assert_int_equal(x.b, y.b);
+    assert_int_equal(x.c, y.c);
 }
 
-bool test_deserialize_single_byte()
+static void test_deserialize_single_byte()
 {
     /*
      * There was a bug in the early version of this library where if you tried
@@ -74,30 +73,23 @@ bool test_deserialize_single_byte()
     char buffer[2];
     char *b = buffer;
     size_t len = wsdl_serialize(&test_in, sizeof(test_in), buffer, sizeof(buffer));
-    if (len == 0)
-        return false;
+    assert_int_equal(len, 2);
 
     wsdl_deserialize(&test_out, sizeof(test_out), buffer, len);
 
-    //printf("p1: %p, ti: %p, p2: %p, to: %p, p3: %p\n", &padding1, &test_in, &padding2, &test_out, &padding3);
-    //printf("p1: %d p2: %d p3: %d\n", padding1, padding2, padding3);
-    //printf("test_in: %d, test_out: %d\n", test_in, test_out);
-
-    if (test_out != test_in || padding1 != 0xff || padding2 != 0xff || padding3 != 0xff)
-        return false;
-    return true;
+    assert_int_equal(test_out, test_in);
+    assert_int_equal(padding1, 0xff);
+    assert_int_equal(padding2, 0xff);
+    assert_int_equal(padding3, 0xff);
 }
-
-#define TEST(x) \
-    if (! (x) ) { \
-        printf("test failed! " #x "\n"); \
-    } else { \
-        printf("test passed! " #x "\n"); \
-    }
 
 int main()
 {
-    TEST(test_single_deserialize());
-    TEST(test_single_deserialize_byte_by_byte());
-    TEST(test_deserialize_single_byte());
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_single_deserialize),
+        cmocka_unit_test(test_single_deserialize_byte_by_byte),
+        cmocka_unit_test(test_deserialize_single_byte),
+    };
+
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

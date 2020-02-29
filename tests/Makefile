@@ -3,6 +3,7 @@ executable = test_main
 VPATH += ../
 CC = gcc
 CFLAGS += -I..
+CFLAGS += -lcmocka
 
 objs  = test_main.o
 objs += wrt_sdl.o
