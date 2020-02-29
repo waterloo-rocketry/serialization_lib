@@ -5,6 +5,15 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
+static void test_length_macro()
+{
+    uint8_t data[] = { 0xca, 0xfe, 0xba, 0xbe };
+
+    char buffer[WSDL_SER_LEN(data)];
+    size_t len = wsdl_serialize(data, sizeof(data), buffer, sizeof(buffer));
+    assert_int_equal(len, WSDL_SER_LEN(data));
+}
+
 static void test_single_deserialize()
 {
     struct {
@@ -86,6 +95,7 @@ static void test_deserialize_single_byte()
 int main()
 {
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_length_macro),
         cmocka_unit_test(test_single_deserialize),
         cmocka_unit_test(test_single_deserialize_byte_by_byte),
         cmocka_unit_test(test_deserialize_single_byte),

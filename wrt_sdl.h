@@ -18,6 +18,20 @@ typedef struct {
 } wsdl_ctx_t;
 
 /*
+ * Macro for determining how long a buffer is needed to hold the serialized
+ * form of a given data structure.
+ *
+ * Declared as a macro instead of a function so that you can declare a buffer
+ * at compile time using something like `char
+ * buffer[WSDL_SER_LEN(actuator_struct_t)` or something. Yay embedded programs
+ * and not having access to dynamic memory allocation!
+ *
+ * Every 6 bits of data becomes a bute of output, so the length of the output
+ * string is ceil(sizeof(type) * 8/6)
+ */
+#define WSDL_SER_LEN(type) ((sizeof(type) * 8 + 5) / 6)
+
+/*
  * Initialize a new deserialization session.
  *
  * Must be called before deserializing a new string.
