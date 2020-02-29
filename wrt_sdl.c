@@ -36,6 +36,20 @@ static uint8_t decode(char base64)
     return base64;
 }
 
+static char checksum_increment(char current_cksum, char new_data)
+{
+    uint8_t odd_sum = 0;
+    uint8_t even_sum = 0;
+    uint8_t new = (uint8_t) new_data;
+    uint8_t i;
+    for (i = 0; i < 4; ++i) {
+        odd_sum += 2 & new;
+        even_sum += 1 & new;
+        new >>= 2;
+    }
+    return encode((decode(current_cksum) + odd_sum + 3 * even_sum) % 64);
+}
+
 static size_t chars_in_bytes(size_t data_len)
 {
     return (data_len * 8 + 5) / 6;
@@ -48,6 +62,7 @@ int wsdl_begin_deserialization(wsdl_ctx_t *ctx, uint8_t *data_out, size_t data_l
 
     ctx->bytes_decoded = 0;
     ctx->bytes_to_decode = data_len;
+    ctx->checksum_incremental = encode(0);
     ctx->data = data_out;
     ctx->offset = 8;
     ctx->finished = 0;
@@ -63,6 +78,21 @@ int wsdl_deserialize_byte(wsdl_ctx_t *ctx, char encoded)
 
     if (ctx->finished) {
         return -1;
+    }
+
+    // Handle checksum
+    if (ctx->bytes_decoded == ctx->bytes_to_decode) {
+        // encoded is the checksum byte
+        ctx->finished = 1;
+        if (ctx->checksum_incremental == encoded) {
+            // Success!
+            return 0;
+        } else {
+            return -1;
+        }
+    } else {
+        // encoded is data, so update the expected checksum
+        ctx->checksum_incremental = checksum_increment(ctx->checksum_incremental, encoded);
     }
 
     switch (ctx->offset) {
@@ -102,12 +132,7 @@ int wsdl_deserialize_byte(wsdl_ctx_t *ctx, char encoded)
             return -1;
     }
 
-    if (ctx->bytes_decoded == ctx->bytes_to_decode) {
-        ctx->finished = 1;
-        return 0;
-    } else {
-        return 1;
-    }
+    return 1;
 }
 
 size_t wsdl_deserialize(uint8_t *data, size_t data_len, const char *ser, size_t ser_len)
@@ -181,5 +206,12 @@ size_t wsdl_serialize(const uint8_t *data, size_t data_len, char *out, size_t ou
                 return 0;
         }
     }
+
+    char checksum = encode(0);
+    char *x;
+    for (x = out_orig; x < out; ++x) {
+        checksum = checksum_increment(checksum, *x);
+    }
+    *out++ = checksum;
     return out - out_orig;
 }

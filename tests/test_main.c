@@ -5,6 +5,23 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
+static void test_checksum()
+{
+    uint8_t data[] = { 1, 2, 3, 4, 5, 6, 7};
+
+    char buffer[WSDL_SER_LEN(data)];
+    size_t len = wsdl_serialize(data, sizeof(data), buffer, sizeof(buffer));
+    assert_true(len);
+
+    // increment first byte of data. This should cause decode to fail
+    buffer[0]++;
+
+    // This should fail, and return 0
+    uint8_t data_out[sizeof(data)];
+    size_t retval = wsdl_deserialize(data_out, sizeof(data_out), buffer, len);
+    assert_false(retval);
+}
+
 static void test_length_macro()
 {
     uint8_t data[] = { 0xca, 0xfe, 0xba, 0xbe };
@@ -79,10 +96,10 @@ static void test_deserialize_single_byte()
     uint8_t test_out = 0;
     uint8_t padding3 = 0xff;
     
-    char buffer[2];
+    char buffer[WSDL_SER_LEN(uint8_t)];
     char *b = buffer;
     size_t len = wsdl_serialize(&test_in, sizeof(test_in), buffer, sizeof(buffer));
-    assert_int_equal(len, 2);
+    assert_int_equal(len, WSDL_SER_LEN(uint8_t));
 
     wsdl_deserialize(&test_out, sizeof(test_out), buffer, len);
 
@@ -95,6 +112,7 @@ static void test_deserialize_single_byte()
 int main()
 {
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_checksum),
         cmocka_unit_test(test_length_macro),
         cmocka_unit_test(test_single_deserialize),
         cmocka_unit_test(test_single_deserialize_byte_by_byte),

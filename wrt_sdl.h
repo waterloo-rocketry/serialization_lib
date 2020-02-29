@@ -12,6 +12,7 @@ extern "C" {
 typedef struct {
     size_t bytes_decoded;
     size_t bytes_to_decode;
+    uint8_t checksum_incremental;
     uint8_t *data;
     uint8_t offset;
     uint8_t finished;
@@ -26,10 +27,11 @@ typedef struct {
  * buffer[WSDL_SER_LEN(actuator_struct_t)` or something. Yay embedded programs
  * and not having access to dynamic memory allocation!
  *
- * Every 6 bits of data becomes a bute of output, so the length of the output
- * string is ceil(sizeof(type) * 8/6)
+ * Every 6 bits of data becomes a bute of output, and there's one byte at the
+ * end for the checksum, so the length of the output string is
+ * ceil(sizeof(type) * 8/6) + 1
  */
-#define WSDL_SER_LEN(type) ((sizeof(type) * 8 + 5) / 6)
+#define WSDL_SER_LEN(type) ((sizeof(type) * 8 + 5) / 6 + 1)
 
 /*
  * Initialize a new deserialization session.
