@@ -8,6 +8,8 @@ extern "C" {
 #include <stdint.h>
 #include <stddef.h>
 
+#define WSDL_VERSION "v1.0.0"
+
 // Waterloo rocketry Serialization/Deserialization Library Context type
 typedef struct {
     size_t bytes_decoded;
